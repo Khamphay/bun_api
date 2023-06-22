@@ -1,0 +1,17 @@
+{
+  "version": "1.0.99",
+  "name": "bun-api",
+  "devDependencies": {
+    "bun-types": "latest"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "hono": "^3.2.5",
+    "jsonwebtoken": "^9.0.0",
+    "prisma": "^4.16.0"
+  },
+  "scripts": {
+    "start": "bun run src/server.ts"
+  },
+  "module": "src/server.js"
+}

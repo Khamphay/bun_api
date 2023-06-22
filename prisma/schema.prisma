@@ -1,0 +1,386 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model billdetails {
+  id             Int                        @id @default(autoincrement())
+  billId         Int
+  unitId         Int
+  productId      Int?
+  weigth         Float
+  COD            Int
+  CODStatus      billdetails_CODStatus      @default(pending)
+  CDCPrice       Int
+  CDCStatus      billdetails_CDCStatus      @default(pending)
+  shippingStatus billdetails_shippingStatus @default(pending)
+  isDelete       Boolean                    @default(false)
+  createdBy      String                     @db.Char(36)
+  updatedBy      String?                    @db.Char(36)
+  createdAt      DateTime                   @default(now()) @db.Timestamp(0)
+  updatedAt      DateTime?                  @db.Timestamp(0)
+  bills          bills                      @relation(fields: [billId], references: [id], onUpdate: Restrict, map: "billdetails_ibfk_1")
+  units          units                      @relation(fields: [unitId], references: [id], onUpdate: Restrict, map: "billdetails_ibfk_2")
+  stocks         stocks?                    @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "billdetails_ibfk_3")
+
+  @@index([billId], map: "billId")
+  @@index([productId], map: "productId")
+  @@index([unitId], map: "unitId")
+}
+
+model bills {
+  id          Int            @id @default(autoincrement())
+  uid         String         @unique(map: "uid") @db.Char(36)
+  merchantId  Int?
+  billType    bills_billType @default(B2C)
+  billDate    DateTime       @default(now()) @db.Timestamp(0)
+  isDelete    Boolean        @default(false)
+  createdBy   String         @db.Char(36)
+  updatedBy   String?        @db.Char(36)
+  createdAt   DateTime       @default(now()) @db.Timestamp(0)
+  updatedAt   DateTime?      @db.Timestamp(0)
+  billdetails billdetails[]
+  employees   employees      @relation(fields: [uid], references: [uid], onUpdate: Restrict, map: "bills_ibfk_1")
+  merchants   merchants?     @relation(fields: [merchantId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "bills_ibfk_2")
+  tracks      tracks[]
+
+  @@index([merchantId], map: "merchantId")
+}
+
+model branches {
+  id        Int         @id @default(autoincrement())
+  companyId Int?
+  name      String      @db.VarChar(255)
+  tel       String?     @db.VarChar(255)
+  village   String      @db.VarChar(255)
+  isDelete  Boolean     @default(false)
+  createdBy String      @db.Char(36)
+  updatedBy String?     @db.Char(36)
+  createdAt DateTime    @default(now()) @db.Timestamp(0)
+  updatedAt DateTime?   @db.Timestamp(0)
+  distrId   Int
+  proId     Int
+  provinces provinces   @relation(fields: [proId], references: [id], onUpdate: Restrict, map: "branches_ibfk_1")
+  districts districts   @relation(fields: [distrId], references: [id], onUpdate: Restrict, map: "branches_ibfk_2")
+  employees employees[]
+  tracks    tracks[]
+
+  @@unique([id, isDelete], name: "findOne")
+  @@index([distrId], map: "distrId")
+  @@index([proId], map: "proId")
+}
+
+model districts {
+  id               Int                @id @default(autoincrement())
+  proId            Int
+  name             String             @db.VarChar(100)
+  createdAt        DateTime           @default(now()) @db.Timestamp(0)
+  updatedAt        DateTime?          @db.Timestamp(0)
+  branches         branches[]
+  provinces        provinces          @relation(fields: [proId], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  merchants        merchants[]
+  userinformations userinformations[]
+  villages         villages[]
+
+  @@index([proId], map: "districts_proId_fkey")
+}
+
+model employees {
+  uid              String           @id @db.Char(36)
+  branchId         Int
+  possitionId      Int
+  tel              String           @db.VarChar(255)
+  isDelete         Boolean          @default(false)
+  createdBy        String           @db.Char(36)
+  updatedBy        String?          @db.Char(36)
+  createdAt        DateTime         @default(now()) @db.Timestamp(0)
+  updatedAt        DateTime?        @db.Timestamp(0)
+  bills            bills?
+  userinformations userinformations @relation(fields: [uid], references: [uid], map: "employees_ibfk_1")
+  branches         branches         @relation(fields: [branchId], references: [id], map: "employees_ibfk_2")
+  possitions       possitions       @relation(fields: [possitionId], references: [id], map: "employees_ibfk_3")
+  trackdetails     trackdetails[]
+
+  @@unique([uid, branchId, isDelete], name: "findOne")
+  @@index([branchId], map: "branchId")
+  @@index([possitionId], map: "possitionId")
+}
+
+model merchants {
+  id               Int               @id @default(autoincrement())
+  uid              String            @db.Char(36)
+  name             String            @db.VarChar(255)
+  village          String            @db.VarChar(255)
+  status           merchants_status? @default(pending)
+  tel              String?           @db.VarChar(255)
+  isDelete         Boolean           @default(false)
+  createdBy        String            @db.Char(36)
+  updatedBy        String?           @db.Char(36)
+  createdAt        DateTime          @default(now()) @db.Timestamp(0)
+  updatedAt        DateTime?         @db.Timestamp(0)
+  distrId          Int
+  proId            Int
+  bills            bills[]
+  userinformations userinformations  @relation(fields: [uid], references: [uid], onUpdate: Restrict, map: "merchants_ibfk_1")
+  provinces        provinces         @relation(fields: [proId], references: [id], onUpdate: Restrict, map: "merchants_ibfk_2")
+  districts        districts         @relation(fields: [distrId], references: [id], onUpdate: Restrict, map: "merchants_ibfk_3")
+  stocks           stocks[]
+  tracks           tracks[]
+
+  @@unique([id, isDelete], name: "findOne")
+  @@index([distrId], map: "distrId")
+  @@index([proId], map: "proId")
+  @@index([uid], map: "uid")
+}
+
+model possitions {
+  id        Int         @id @default(autoincrement())
+  name      String      @db.VarChar(255)
+  isDelete  Boolean     @default(false)
+  createdBy String      @db.Char(36)
+  updatedBy String?     @db.Char(36)
+  createdAt DateTime    @default(now()) @db.Timestamp(0)
+  updatedAt DateTime?   @db.Timestamp(0)
+  employees employees[]
+
+  @@unique([id, isDelete], name: "findOne")
+}
+
+model provinces {
+  id               Int                @id @default(autoincrement())
+  name             String?            @unique(map: "name") @db.VarChar(200)
+  region           String?            @db.VarChar(100)
+  createdAt        DateTime           @default(now()) @db.Timestamp(0)
+  updatedAt        DateTime?          @db.Timestamp(0)
+  branches         branches[]
+  districts        districts[]
+  merchants        merchants[]
+  userinformations userinformations[]
+}
+
+model roles {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique(map: "name") @db.VarChar(200)
+  displayName String?   @unique(map: "displayName") @db.VarChar(200)
+  createdAt   DateTime  @default(now()) @db.Timestamp(0)
+  updatedAt   DateTime? @db.Timestamp(0)
+  users       users[]
+}
+
+model status {
+  id           Int            @id @default(autoincrement())
+  statusName   String         @db.VarChar(255)
+  isDelete     Boolean        @default(false)
+  createdBy    String         @db.Char(36)
+  updatedBy    String?        @db.Char(36)
+  createdAt    DateTime       @default(now()) @db.Timestamp(0)
+  updatedAt    DateTime?      @db.Timestamp(0)
+  trackdetails trackdetails[]
+
+  @@unique([id, isDelete], name: "findOne")
+}
+
+model stocks {
+  id          Int           @id @default(autoincrement())
+  merchantId  Int
+  productName String        @db.VarChar(255)
+  qty         Int           @default(0)
+  price       Float         @default(0)
+  discretion  String?       @db.VarChar(255)
+  isDelete    Boolean       @default(false)
+  createdBy   String        @db.Char(36)
+  updatedBy   String?       @db.Char(36)
+  createdAt   DateTime      @default(now()) @db.Timestamp(0)
+  updatedAt   DateTime?     @db.Timestamp(0)
+  billdetails billdetails[]
+  merchants   merchants     @relation(fields: [merchantId], references: [id], onUpdate: Restrict, map: "stocks_ibfk_1")
+
+  @@unique([id, merchantId, isDelete], name: "findOne")
+  @@index([merchantId], map: "merchantId")
+}
+
+model trackdetails {
+  id        Int       @id @default(autoincrement())
+  trackId   Int
+  statusId  Int
+  uid       String    @db.Char(36)
+  isDelete  Boolean   @default(false)
+  createdBy String    @db.Char(36)
+  updatedBy String?   @db.Char(36)
+  createdAt DateTime? @default(now()) @db.Timestamp(0)
+  updatedAt DateTime? @db.Timestamp(0)
+  tracks    tracks    @relation(fields: [trackId], references: [id], onUpdate: Restrict, map: "trackdetails_ibfk_1")
+  status    status    @relation(fields: [statusId], references: [id], onUpdate: Restrict, map: "trackdetails_ibfk_2")
+  employees employees @relation(fields: [uid], references: [uid], onUpdate: Restrict, map: "trackdetails_ibfk_3")
+
+  @@index([statusId], map: "statusId")
+  @@index([trackId], map: "trackId")
+  @@index([uid], map: "uid")
+}
+
+model tracks {
+  id             Int                   @id @default(autoincrement())
+  tackingNo      String                @db.VarChar(255)
+  billId         Int
+  branchId       Int?
+  merchantId     Int?
+  senderName     String                @db.VarChar(255)
+  senderTel      String                @db.VarChar(255)
+  senderAddress  String                @db.VarChar(255)
+  rceiverName    String?               @db.VarChar(255)
+  receiverTel    String                @db.VarChar(255)
+  shippingStatus tracks_shippingStatus @default(pending)
+  isDelete       Boolean               @default(false)
+  createdBy      String                @db.Char(36)
+  updatedBy      String?               @db.Char(36)
+  createdAt      DateTime              @default(now()) @db.Timestamp(0)
+  updatedAt      DateTime?             @db.Timestamp(0)
+  trackdetails   trackdetails[]
+  bills          bills                 @relation(fields: [billId], references: [id], onUpdate: Restrict, map: "tracks_ibfk_1")
+  branches       branches?             @relation(fields: [branchId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "tracks_ibfk_2")
+  merchants      merchants?            @relation(fields: [merchantId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "tracks_ibfk_3")
+
+  @@index([billId], map: "billId")
+  @@index([branchId], map: "branchId")
+  @@index([merchantId], map: "merchantId")
+}
+
+model units {
+  id          Int           @id @default(autoincrement())
+  name        String
+  price       Int
+  isDelete    Boolean       @default(false)
+  createdBy   String        @db.Char(36)
+  updatedBy   String?       @db.Char(36)
+  createdAt   DateTime      @default(now()) @db.Timestamp(0)
+  updatedAt   DateTime?     @db.Timestamp(0)
+  billdetails billdetails[]
+
+  @@unique([id, isDelete], name: "findOne")
+  @@index([name, isDelete], map: "check_unit_duplicates")
+}
+
+model userinformations {
+  uid       String                  @id @default(uuid()) @db.Char(36)
+  firstName String                  @db.VarChar(100)
+  lastName  String                  @db.VarChar(100)
+  gender    userinformations_gender
+  birtday   DateTime?               @db.Timestamp(0)
+  tel       String
+  isDelete  Boolean                 @default(false)
+  createdBy String                  @db.Char(36)
+  updatedBy String?                 @db.Char(36)
+  createdAt DateTime                @default(now()) @db.Timestamp(0)
+  updatedAt DateTime?               @db.Timestamp(0)
+  distId    Int?
+  proId     Int?
+  villId    Int?
+  status    Int?                    @default(0) //0= customer; 1= employee
+  employees employees?
+  merchants merchants[]
+  districts districts?              @relation(fields: [distId], references: [id])
+  provinces provinces?              @relation(fields: [proId], references: [id])
+  villages  villages?               @relation(fields: [villId], references: [id])
+  users     users?
+
+  @@unique([uid, status, isDelete], name: "findOne")
+  @@index([distId], map: "userinformations_distId_fkey")
+  @@index([proId], map: "userinformations_proId_fkey")
+  @@index([villId], map: "userinformations_villId_fkey")
+}
+
+model users {
+  uid              String           @id @unique @db.Char(36)
+  roleId           Int
+  userName         String           @unique(map: "check_duplicate_user_name") @db.VarChar(100)
+  password         String           @db.VarChar(255)
+  accessToken      String?          @db.VarChar(1000)
+  refreshToken     String?          @db.VarChar(1000)
+  expired          String?
+  isDelete         Boolean?         @default(false)
+  createdBy        String           @db.Char(36)
+  updatedBy        String?          @db.Char(36)
+  createdAt        DateTime         @default(now()) @db.Timestamp(0)
+  updatedAt        DateTime?        @db.Timestamp(0)
+  roles            roles            @relation(fields: [roleId], references: [id])
+  userinformations userinformations @relation(fields: [uid], references: [uid])
+
+  @@index([uid, isDelete], map: "check_duplicate_user")
+  @@index([roleId], map: "users_roleId_fkey")
+}
+
+model villages {
+  id               Int                @id @default(autoincrement())
+  zoneId           Int?
+  distId           Int
+  name             String             @db.VarChar(255)
+  isDelete         Boolean?           @default(false)
+  createdBy        String             @db.Char(36)
+  updatedBy        String?            @db.Char(36)
+  createdAt        DateTime           @default(now()) @db.Timestamp(0)
+  updatedAt        DateTime?          @db.Timestamp(0)
+  userinformations userinformations[]
+  zones            zones?             @relation(fields: [zoneId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "villages_ibfk_1")
+  districts        districts          @relation(fields: [distId], references: [id], onUpdate: Restrict, map: "villages_ibfk_2")
+
+  @@unique([id, isDelete], name: "findOne")
+  @@index([distId], map: "distId")
+  @@index([zoneId], map: "zoneId")
+}
+
+model zones {
+  id        Int        @id @default(autoincrement())
+  zoneName  String     @unique(map: "check_duplicate_zone") @db.VarChar(255)
+  isDelete  Boolean?   @default(false)
+  createdBy String     @db.Char(36)
+  updatedBy String?    @db.Char(36)
+  createdAt DateTime   @default(now()) @db.Timestamp(0)
+  updatedAt DateTime?  @db.Timestamp(0)
+  villages  villages[]
+
+  @@unique([id, isDelete], name: "findOne")
+}
+
+enum bills_billType {
+  B2B
+  B2C
+}
+
+enum userinformations_gender {
+  male
+  female
+}
+
+enum merchants_status {
+  pending
+  rejected
+  verified
+}
+
+enum billdetails_CODStatus {
+  pending
+  paid
+}
+
+enum billdetails_CDCStatus {
+  pending
+  paid
+}
+
+enum billdetails_shippingStatus {
+  pending
+  sending
+  success
+  cancel
+}
+
+enum tracks_shippingStatus {
+  pending
+  sending
+  success
+  cancel
+}
